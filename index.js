@@ -6,18 +6,29 @@ const upload = multer({ dest: 'uploads/' });
 const app = express();
 app.use(express.json());
 
-// CORS для изображений
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     next();
 });
 
 const token = process.env.BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token);
+
+// Установка вебхука
+const webhookUrl = `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/bot${token}`;
+bot.setWebHook(webhookUrl).then(() => {
+    console.log(`Webhook set to ${webhookUrl}`);
+});
+
+// Обработка обновлений
+app.post(`/bot${token}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
 
 bot.onText(/\/sharestory/, async (msg) => {
-    console.log('Received /shareStory from:', msg.chat.id);
-    await bot.sendPhoto(msg.chat.id, 'https://your-server.com/images/game-screenshot.png', {
+    console.log('Received /sharestory from:', msg.chat.id);
+    await bot.sendPhoto(msg.chat.id, 'https://via.placeholder.com/512', {
         caption: 'Check out my game! 👍'
     });
 });
@@ -26,8 +37,8 @@ bot.on('web_app_data', async (msg) => {
     const chatId = msg.chat.id;
     const data = msg.web_app_data.data;
     console.log('Received web_app_data:', data);
-    if (data === '/shareStory') {
-        await bot.sendPhoto(chatId, 'https://your-server.com/images/game-screenshot.png', {
+    if (data === '/sharestory') {
+        await bot.sendPhoto(chatId, 'https://via.placeholder.com/512', {
             caption: 'Check out my game! 👍'
         });
     }
