@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
-bot.onText(/\/shareStory/, async (msg) => {
+bot.onText(/\/sharestory/, async (msg) => {
     console.log('Received /shareStory from:', msg.chat.id);
     await bot.sendPhoto(msg.chat.id, 'https://your-server.com/images/game-screenshot.png', {
         caption: 'Check out my game! 👍'
