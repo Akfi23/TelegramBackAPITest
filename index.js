@@ -14,20 +14,47 @@ app.use((req, res, next) => {
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token);
 
-// Установка вебхука
+// In-memory база пользователей (замени на реальную позже)
+const users = new Map(); // key = telegramId, value = { referrerId, ... }
+
 const webhookUrl = `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/bot${token}`;
 bot.setWebHook(webhookUrl).then(() => {
     console.log(`Webhook set to ${webhookUrl}`);
 });
 
-// Обработка обновлений
 app.post(`/bot${token}`, (req, res) => {
     bot.processUpdate(req.body);
     res.sendStatus(200);
 });
 
+bot.onText(/\/start(?:\s+(\S+))?/, async (msg, match) => {
+    const telegramId = msg.from.id;
+    const referralCode = match[1]; // будет 'ref_123456' или undefined
+
+    if (users.has(telegramId)) {
+        await bot.sendMessage(telegramId, "Ты уже зарегистрирован!");
+        return;
+    }
+
+    let referrerId = null;
+    if (referralCode && referralCode.startsWith('ref_')) {
+        referrerId = parseInt(referralCode.split('_')[1]);
+    }
+
+    users.set(telegramId, {
+        telegramId,
+        referrerId,
+        createdAt: new Date(),
+    });
+
+    await bot.sendMessage(telegramId, "Добро пожаловать в игру!");
+
+    if (referrerId) {
+        await bot.sendMessage(referrerId, `🎉 По твоей ссылке зашёл пользователь: @${msg.from.username || msg.from.first_name}`);
+    }
+});
+
 bot.onText(/\/sharestory/, async (msg) => {
-    console.log('Received /sharestory from:', msg.chat.id);
     await bot.sendPhoto(msg.chat.id, 'https://via.placeholder.com/512', {
         caption: 'Check out my game! 👍'
     });
